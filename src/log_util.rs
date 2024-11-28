@@ -9,10 +9,11 @@ use tracing_subscriber::{
 
 pub fn init(project_path: &Path) -> (WorkerGuard, WorkerGuard) {
     std::env::set_var("RUST_BACKTRACE", "1");
+    let time_zone_offset = UtcOffset::from_hms(8, 0, 0).expect("should get UTC+8 offset!");
 
     let format = format_description::parse("[year][month][day]_[hour][minute][second]").unwrap();
     let now = time::OffsetDateTime::now_local()
-        .unwrap()
+        .unwrap_or(time::OffsetDateTime::now_utc().to_offset(time_zone_offset))
         .format(&format)
         .unwrap();
     let log_file_name = format!("log_{}.log", now);
@@ -26,8 +27,10 @@ pub fn init(project_path: &Path) -> (WorkerGuard, WorkerGuard) {
     let (non_blocking_file, _file_guard) = tracing_appender::non_blocking(log_file);
     let (non_blocking_stdout, _stdout_guard) = tracing_appender::non_blocking(stdout());
 
-    let offset = UtcOffset::from_hms(8, 0, 0).expect("should get UTC+8 offset!");
-    let timer = OffsetTime::new(offset, time::format_description::well_known::Rfc3339);
+    let timer = OffsetTime::new(
+        time_zone_offset,
+        time::format_description::well_known::Rfc3339,
+    );
 
     tracing::subscriber::set_global_default(
         fmt::Subscriber::builder()

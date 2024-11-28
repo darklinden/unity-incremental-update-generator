@@ -3,7 +3,7 @@ use clap::Parser;
 use folder_hash_list::folder_hash_list;
 use giu_config::GIUConfig;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs, os::windows::fs::MetadataExt, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 mod file_check;
 mod run_unity_build;
@@ -239,7 +239,7 @@ async fn generate_incremental_updates() -> Result<()> {
                 tracing::info!("Generated patch for tag: {}", tag);
                 file_zip::compress(&platform_folder, &diff_files, &patch_file, false)?;
 
-                let file_size = fs::metadata(patch_file)?.file_size();
+                let file_size = fs::metadata(patch_file)?.len();
                 let file_size = file_size as f64 / 1048576_f64; // 1024 x 1024
                 let file_size = if file_size < 0.01 {
                     format!("{:.2} K", file_size * 1024_f64)
@@ -277,7 +277,7 @@ async fn generate_incremental_updates() -> Result<()> {
         tracing::info!("Generated patch full");
         file_zip::compress(&platform_folder, &diff_files, &patch_file, false)?;
 
-        let full_file_size = fs::metadata(patch_file)?.file_size();
+        let full_file_size = fs::metadata(patch_file)?.len();
         let full_file_size = full_file_size as f64 / 1048576_f64; // 1024 x 1024
         let full_file_size = if full_file_size < 0.01 {
             format!("{:.2} K", full_file_size * 1024_f64)
