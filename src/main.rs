@@ -70,17 +70,20 @@ pub(crate) struct PlatformPatchInfo {
 async fn generate_incremental_updates() -> Result<()> {
     let args: Args = Args::parse();
     let project_path = cyg_to_win(&args.project_path);
-    let project_path = Path::new(&project_path);
+    let project_path = std::path::absolute(Path::new(&project_path))?;
+    println!("project_path: {:?}", project_path);
 
     if !project_path.is_dir() {
         return Err(anyhow::anyhow!("Invalid project path"));
     }
 
-    if !is_git_repo(project_path).await? {
+    let _guards = log_util::init(&project_path);
+
+    if !is_git_repo(&project_path).await? {
         return Err(anyhow::anyhow!("project folder is not in Git repository"));
     }
 
-    if !is_git_repo_clean(project_path).await? {
+    if !is_git_repo_clean(&project_path).await? {
         return Err(anyhow::anyhow!("project folder has uncommitted changes"));
     }
 
@@ -124,14 +127,14 @@ async fn generate_incremental_updates() -> Result<()> {
     }
     let loader_version = fs::read_to_string(loader_version)?.trim().to_string();
 
-    let tags = get_git_tags(project_path, &loader_version).await?;
+    let tags = get_git_tags(&project_path, &loader_version).await?;
 
     tracing::info!(
         "Loader version: {}, Will generate incremental updates for tags:",
         loader_version,
     );
     for tag in tags.iter() {
-        let tag_info = git_cmd::get_git_tag_info(project_path, tag).await?;
+        let tag_info = git_cmd::get_git_tag_info(&project_path, tag).await?;
         tracing::info!("    {}", tag_info);
     }
 
@@ -155,7 +158,7 @@ async fn generate_incremental_updates() -> Result<()> {
     fs::create_dir_all(&patches_path)?;
 
     for platform in platforms.iter() {
-        if !run_unity_build(unity_path, project_path, platform).await? {
+        if !run_unity_build(unity_path, &project_path, platform).await? {
             return Err(anyhow::anyhow!(format!(
                 "Failed to exec Unity build for {}",
                 platform
@@ -192,7 +195,7 @@ async fn generate_incremental_updates() -> Result<()> {
                 fs::create_dir_all(&tag_folder)?;
 
                 export_file_in_git_by_tag(
-                    project_path,
+                    &project_path,
                     tag,
                     hash_file.to_str().unwrap(),
                     &tag_folder,
@@ -305,7 +308,7 @@ async fn generate_incremental_updates() -> Result<()> {
     tracing::info!("Incremental updates generated successfully");
 
     git_commit_with_tag(
-        project_path,
+        &project_path,
         &format!("{}-{}", loader_version, patch_version),
         &format!("build: {}-{}", loader_version, patch_version),
     )
@@ -316,11 +319,11 @@ async fn generate_incremental_updates() -> Result<()> {
 
 #[tokio::main]
 async fn main() {
-    let _guards = log_util::init();
     match generate_incremental_updates().await {
         Ok(_) => {}
         Err(e) => {
-            tracing::error!("Error: {}", e);
+            tracing::error!("{}", e);
+            println!("Error: {}", e);
         }
     }
 }

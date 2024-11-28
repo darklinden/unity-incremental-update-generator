@@ -1,4 +1,4 @@
-use std::io::stdout;
+use std::{io::stdout, path::Path};
 
 use time::{format_description, UtcOffset};
 use tracing_appender::non_blocking::WorkerGuard;
@@ -7,7 +7,7 @@ use tracing_subscriber::{
     layer::SubscriberExt,
 };
 
-pub fn init() -> (WorkerGuard, WorkerGuard) {
+pub fn init(project_path: &Path) -> (WorkerGuard, WorkerGuard) {
     std::env::set_var("RUST_BACKTRACE", "1");
 
     let format = format_description::parse("[year][month][day]_[hour][minute][second]").unwrap();
@@ -16,9 +16,7 @@ pub fn init() -> (WorkerGuard, WorkerGuard) {
         .format(&format)
         .unwrap();
     let log_file_name = format!("log_{}.log", now);
-    // exe folder
-    let exec_path = std::env::current_exe().unwrap();
-    let exec_folder = exec_path.parent().unwrap().to_str().unwrap();
+    let exec_folder = project_path.to_str().unwrap();
     println!(
         "log file path: {}/{}",
         exec_folder.replace("\\", "/"),
@@ -51,7 +49,7 @@ mod test {
     fn test_init() {
         println!("test 0");
 
-        let _guards = init();
+        let _guards = init(std::env::current_dir().unwrap().as_path());
 
         tracing::info!("test 1");
 
