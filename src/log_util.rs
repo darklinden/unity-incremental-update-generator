@@ -3,12 +3,8 @@ use std::io::stdout;
 use time::{format_description, UtcOffset};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
-    filter,
-    fmt::{self, time::OffsetTime, Layer},
+    fmt::{self, time::OffsetTime},
     layer::SubscriberExt,
-    registry::LookupSpan,
-    util::SubscriberInitExt,
-    Registry,
 };
 
 pub fn init() -> (WorkerGuard, WorkerGuard) {
