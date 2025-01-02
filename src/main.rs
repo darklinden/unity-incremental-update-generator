@@ -158,11 +158,22 @@ async fn generate_incremental_updates() -> Result<()> {
     fs::create_dir_all(&patches_path)?;
 
     for platform in platforms.iter() {
-        if !run_unity_build(unity_path, &project_path, platform).await? {
-            return Err(anyhow::anyhow!(format!(
-                "Failed to exec Unity build for {}",
-                platform
-            )));
+        if tags.is_empty() {
+            // build base app with full res
+            if !run_unity_build(unity_path, &project_path, platform, true).await? {
+                return Err(anyhow::anyhow!(format!(
+                    "Failed to exec Unity build for {}",
+                    platform
+                )));
+            }
+        } else {
+            // build incremental res
+            if !run_unity_build(unity_path, &project_path, platform, false).await? {
+                return Err(anyhow::anyhow!(format!(
+                    "Failed to exec Unity build for {}",
+                    platform
+                )));
+            }
         }
 
         let platform_folder = project_path.join("ServerData").join(platform);

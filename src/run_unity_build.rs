@@ -4,6 +4,7 @@ pub(crate) async fn run_unity_build(
     unity_path: &Path,
     project_path: &Path,
     platform: &str,
+    build_app: bool,
 ) -> anyhow::Result<bool> {
     use std::fs;
     use std::process::Stdio;
@@ -69,7 +70,11 @@ pub(crate) async fn run_unity_build(
             "-buildTarget",
             platform,
             "-executeMethod",
-            "BuildDLLAndAddrs.ReleaseDllAndAddrs",
+            if build_app {
+                "BuildDLLAndAddrs.ReleaseMainPackage"
+            } else {
+                "BuildDLLAndAddrs.ReleaseIncrementalServerData"
+            },
             "-logFile",
             project_path.join("output.txt").to_str().unwrap(),
         ])
@@ -78,13 +83,19 @@ pub(crate) async fn run_unity_build(
         .await?;
 
     let output = fs::read_to_string(project_path.join("output.txt"))?;
-    Ok(if output.contains("ReleaseDllAndAddrs Build Success") {
-        tracing::info!("build success - {}", platform);
-        true
-    } else {
-        tracing::info!("build failed - {}", platform);
-        false
-    })
+    Ok(
+        if output.contains(if build_app {
+            "ReleaseMainPackage Build Success"
+        } else {
+            "ReleaseIncrementalServerData Build Success"
+        }) {
+            tracing::info!("build success - {}", platform);
+            true
+        } else {
+            tracing::info!("build failed - {}", platform);
+            false
+        },
+    )
 }
 
 mod test {
@@ -96,7 +107,7 @@ mod test {
         let project_path = "C:/Github/unity-hot-update/unity";
         let project_path = std::path::Path::new(project_path);
         let platform = "Android";
-        match super::run_unity_build(unity_path, project_path, platform).await {
+        match super::run_unity_build(unity_path, project_path, platform, true).await {
             Ok(_) => {}
             Err(e) => tracing::error!("error: {}", e),
         }
