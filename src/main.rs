@@ -257,8 +257,9 @@ async fn generate_incremental_updates() -> Result<()> {
                 } else {
                     format!("{:.2} M", file_size)
                 };
+                let tag_version = tag.split('-').last().unwrap();
                 let patch_info = PatchInfo {
-                    ver: patch_version.to_string(),
+                    ver: tag_version.to_string(),
                     down: format!("{}.zip", tag),
                     size: file_size,
                 };
@@ -305,8 +306,8 @@ async fn generate_incremental_updates() -> Result<()> {
             sizes: Vec::new(),
         };
 
-        for (tag, patch_info) in platform_patch_info_map.iter() {
-            platform_patch_info.vers.push(tag.to_string());
+        for (_tag, patch_info) in platform_patch_info_map.iter() {
+            platform_patch_info.vers.push(patch_info.ver.to_string());
             platform_patch_info.downs.push(patch_info.down.to_string());
             platform_patch_info.sizes.push(patch_info.size.to_string());
         }
